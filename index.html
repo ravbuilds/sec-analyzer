@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEC Financial Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0c0f;
+      --surface: #111318;
+      --surface2: #181c22;
+      --surface3: #1e2330;
+      --border: #2a2f3d;
+      --border2: #363d52;
+      --accent: #4fffb0;
+      --accent2: #00c8ff;
+      --accent3: #ff6b6b;
+      --accent4: #ffd166;
+      --text: #e8ecf4;
+      --text2: #8892a4;
+      --text3: #4e5566;
+      --green: #4fffb0;
+      --red: #ff6b6b;
+      --yellow: #ffd166;
+      --blue: #00c8ff;
+      --purple: #b47aff;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --font-body: 'DM Sans', sans-serif;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10, 12, 15, 0.9);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .header-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text3);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    /* MAIN LAYOUT */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* SEARCH SECTION */
+    .search-hero {
+      text-align: center;
+      padding: 4rem 0 3rem;
+    }
+
+    .search-hero h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+
+    .search-hero h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .search-hero p {
+      color: var(--text2);
+      font-size: 1rem;
+      margin-bottom: 2.5rem;
+      font-weight: 300;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .search-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 500;
+      padding: 0.9rem 1.25rem;
+      border-radius: var(--radius);
+      outline: none;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-input::placeholder {
+      color: var(--text3);
+      font-weight: 300;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 255, 176, 0.1);
+    }
+
+    .search-btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.9rem 1.5rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .search-btn:hover {
+      transform: translateY(-1px);
+      opacity: 0.9;
+    }
+
+    .search-btn:active {
+      transform: translateY(0);
+    }
+
+    .search-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .quick-tickers {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+
+    .ticker-pill {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text2);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .ticker-pill:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* STATUS / ERROR */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.9rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      margin-bottom: 2rem;
+    }
+
+    .status-bar.loading {
+      background: rgba(0, 200, 255, 0.08);
+      border: 1px solid rgba(0, 200, 255, 0.2);
+      color: var(--blue);
+    }
+
+    .status-bar.error {
+      background: rgba(255, 107, 107, 0.08);
+      border: 1px solid rgba(255, 107, 107, 0.2);
+      color: var(--red);
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 200, 255, 0.3);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* COMPANY INFO CARD */
+    .company-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .company-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.75rem;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.4rem;
+    }
+
+    .company-meta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .meta-badge {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .meta-badge.ticker {
+      background: rgba(79, 255, 176, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(79, 255, 176, 0.2);
+    }
+
+    .meta-badge.sic {
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+
+    .meta-badge.exchange {
+      background: rgba(0, 200, 255, 0.1);
+      color: var(--blue);
+      border: 1px solid rgba(0, 200, 255, 0.2);
+    }
+
+    .data-coverage {
+      text-align: right;
+    }
+
+    .coverage-num {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .coverage-label {
+      font-size: 0.75rem;
+      color: var(--text2);
+      margin-top: 0.2rem;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text2);
+      padding: 0.75rem 1.25rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+      transition: color 0.15s;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* METRICS GRID */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .metric-card:hover {
+      border-color: var(--border2);
+      transform: translateY(-1px);
+    }
+
+    .metric-card.selected {
+      border-color: var(--accent);
+      background: rgba(79, 255, 176, 0.04);
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--text2);
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.02em;
+    }
+
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metric-value.positive {
+      color: var(--green);
+    }
+
+    .metric-value.negative {
+      color: var(--red);
+    }
+
+    .metric-change {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      margin-top: 0.3rem;
+      color: var(--text3);
+    }
+
+    /* CHART AREA */
+    .chart-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .chart-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chart-type-btn {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chart-type-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(79, 255, 176, 0.08);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    /* DATA TABLE */
+    .table-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    .table-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .table-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .export-btn {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 5px 12px;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .export-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    thead th {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text3);
+      text-align: right;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      letter-spacing: 0.05em;
+    }
+
+    thead th:first-child {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      background: var(--surface);
+      z-index: 2;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(42, 47, 61, 0.5);
+      transition: background 0.1s;
+    }
+
+    tbody tr:hover {
+      background: var(--surface2);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    td {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.65rem 1rem;
+      text-align: right;
+      white-space: nowrap;
+      color: var(--text2);
+    }
+
+    td:first-child {
+      text-align: left;
+      color: var(--text);
+      font-weight: 500;
+      position: sticky;
+      left: 0;
+      background: inherit;
+      z-index: 1;
+      font-size: 0.72rem;
+      letter-spacing: 0.01em;
+    }
+
+    td.positive {
+      color: var(--green);
+    }
+
+    td.negative {
+      color: var(--red);
+    }
+
+    td.na {
+      color: var(--text3);
+    }
+
+    tr.section-header {
+      background: var(--surface2) !important;
+    }
+    tr.section-header th {
+      text-align: left;
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid var(--border);
+      border-top: 1px solid var(--border);
+    }
+    tr.total-row td {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-weight: 600;
+    }
+    td.indent-cell {
+      padding-left: 2rem !important;
+    }
+    td.no-indent-cell {
+      padding-left: 1rem !important;
+    }
+
+    /* EMPTY / WELCOME STATE */
+    .empty-state {
+      text-align: center;
+      padding: 5rem 2rem;
+      color: var(--text3);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.4;
+    }
+
+    .empty-state h2 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--text2);
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+      font-size: 0.85rem;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      main {
+        padding: 1rem;
+      }
+
+      .company-header {
+        padding: 1.25rem;
+      }
+
+      .company-name {
+        font-size: 1.35rem;
+      }
+
+      .metrics-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+    }
+
+    /* PULSE ANIMATION */
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .loading-skeleton {
+      background: var(--surface2);
+      border-radius: 4px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* CHAT PANEL */
+    body.chat-open #main-wrapper {
+      margin-right: 400px;
+    }
+
+    #main-wrapper {
+      transition: margin-right 0.3s ease;
+    }
+
+    #chat-panel {
+      position: fixed;
+      top: 64px;
+      left: 100%;
+      bottom: 0;
+      width: 400px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      transition: transform 0.3s ease;
+      z-index: 90;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body.chat-open #chat-panel {
+      transform: translateX(-100%);
+    }
+
+    .chat-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+    }
+
+    .chat-close {
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+
+    .chat-close:hover {
+      color: var(--text);
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .msg {
+      padding: 0.8rem 1rem;
+      border-radius: var(--radius);
+      max-width: 90%;
+    }
+
+    .msg-user {
+      background: var(--accent);
+      color: #000;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+
+    .msg-ai {
+      background: var(--surface2);
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+      border: 1px solid var(--border);
+    }
+
+    .chat-input-area {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.6rem 1rem;
+      border-radius: 20px;
+      outline: none;
+      font-family: var(--font-body);
+    }
+
+    .chat-input:focus {
+      border-color: var(--accent);
+    }
+
+    .chat-send {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .chat-toggle {
+      background: rgba(79, 255, 176, 0.1);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .chat-toggle:hover {
+      background: var(--accent);
+      color: #000;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">SEC<span>.</span>financial</div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <div class="header-badge">10-K · 10-Q · EDGAR</div>
+      <button id="chat-toggle-btn" class="chat-toggle" style="display:block;" onclick="toggleChat()">💬 Chat with
+        Data</button>
+    </div>
+  </header>
+
+  <div id="main-wrapper">
+    <main id="app">
+      <!-- Rendered by JS -->
+    </main>
+  </div>
+
+  <div id="chat-panel">
+    <div class="chat-header">
+      Ask AI Analysis
+      <button class="chat-close" onclick="toggleChat()">×</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg msg-ai">Hi! I can analyze the full 10-K data for the current ticker. What would you like to know?
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chat-input" class="chat-input" placeholder="e.g., Why did revenue drop?"
+        onkeydown="if(event.key==='Enter') sendChat()" />
+      <button class="chat-send" id="chat-send-btn" onclick="sendChat()">↑</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000/api';
+
+    // ─── STATE ────────────────────────────────────────────────────────────────────
+    let state = {
+      ticker: '',
+      loading: false,
+      error: null,
+      companyInfo: null,
+      financials: null,
+      activeTab: 'income_statement',
+      selectedMetrics: [],
+      chartType: 'line',
+      chatOpen: false,
+      chatHistory: [],
+      chatLoading: false,
+    };
+
+    // ─── FORMATTERS ───────────────────────────────────────────────────────────────
+    function fmt(val, isShares = false) {
+      if (val === null || val === undefined) return '—';
+      const abs = Math.abs(val);
+      const sign = val < 0 ? '-' : '';
+      if (isShares) {
+        if (abs >= 1e9) return sign + (abs / 1e9).toFixed(2) + 'B';
+        if (abs >= 1e6) return sign + (abs / 1e6).toFixed(1) + 'M';
+        return sign + abs.toLocaleString();
+      }
+      if (abs >= 1e12) return sign + '$' + (abs / 1e12).toFixed(2) + 'T';
+      if (abs >= 1e9) return sign + '$' + (abs / 1e9).toFixed(2) + 'B';
+      if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(1) + 'M';
+      if (abs >= 1e3) return sign + '$' + (abs / 1e3).toFixed(1) + 'K';
+      if (abs < 100 && abs > 0) return sign + val.toFixed(2); // EPS
+      return sign + '$' + abs.toLocaleString();
+    }
+
+    function isShareMetric(key) {
+      return key.includes('Shares') || key === 'EPS_Basic' || key === 'EPS_Diluted';
+    }
+
+    function pctChange(curr, prev) {
+      if (!prev || prev === 0) return null;
+      return ((curr - prev) / Math.abs(prev) * 100).toFixed(1);
+    }
+
+    // ─── TAB CONFIG ───────────────────────────────────────────────────────────────
+    const TABS = [
+      { id: 'income_statement', label: 'Income Statement' },
+      { id: 'balance_sheet', label: 'Balance Sheet' },
+      { id: 'cash_flow', label: 'Cash Flow' },
+    ];
+
+    const METRIC_LABELS = {
+      // Income
+      TotalRevenues: 'Total Revenues',
+      TotalRevenuesChg: 'Total Revenues %Chg',
+      CostOfSales: 'Cost of Sales',
+      GrossProfit: 'Gross Profit',
+      GrossProfitMargin: 'Gross Profit Margin',
+      SGA_Expense: 'Selling, General & Administrative Expenses',
+      RD_Expense: 'Research & Development Expenses',
+      OperatingProfit: 'Operating Profit',
+      OperatingMargin: 'Operating Margin',
+      NonOperatingIncome: 'Non-Operating Income',
+      TotalNonOperatingIncome: 'Total Non-Operating Income',
+      IncomeBeforeTaxes: 'Income Before Provision for Income Taxes',
+      ProvisionForIncomeTaxes: 'Provision for Income Taxes',
+      ConsolidatedNetIncome: 'Consolidated Net Income',
+      NetIncomeCommon: 'Net Income Attributable to Common Shareholders',
+      BasicEPS: 'Basic EPS',
+      DilutedEPS: 'Diluted EPS',
+      BasicWeightedShares: 'Basic Weighted Average Shares Outstanding',
+      TotalSharesOutstanding: 'Total Shares Outstanding',
+      DilutedWeightedShares: 'Diluted Weighted Average Shares Outstanding',
+      SharesOutstanding: 'Shares Outstanding',
+      EBITDA: 'EBITDA',
+      EffectiveTaxRate: 'Effective Tax Rate',
+      // Balance
+      Cash: 'Cash and Cash Equivalents', 
+      ShortTermInvestments: 'Short-Term Investments',
+      TotalCashAndCashEquivalents: 'Total Cash and Cash Equivalents',
+      AccountsReceivable: 'Accounts Receivable', 
+      TotalTradeReceivables: 'Total Trade Receivables',
+      Inventory: 'Inventories',
+      OtherCurrentAssets: 'Other Current Assets', 
+      CurrentAssets: 'Total Current Assets', 
+      PPE_Net: 'Net Property, Plant & Equipment',
+      Goodwill: 'Goodwill', 
+      OtherLongTermAssets: 'Other Long-Term Assets',
+      TotalAssets: 'Total Assets',
+      
+      AccountsPayable: 'Accounts Payable',
+      AccruedExpenses: 'Accrued Expenses',
+      CurrentPortionLongTermDebt: 'Current Portion of Long-Term Debt',
+      UnearnedRevenue: 'Unearned Revenue',
+      CurrentLiabilities: 'Total Current Liabilities',
+      LongTermDebt: 'Long-Term Debt', 
+      Leases: 'Leases',
+      OtherLongTermLiabilities: 'Other Long-Term Liabilities',
+      TotalLongTermLiabilities: 'Total Long-Term Liabilities',
+      TotalLiabilities: 'Total Liabilities',
+
+      PreferredStock: 'Preferred Stock',
+      CommonStock: 'Common Stock',
+      TreasuryStock: 'Treasury Stock',
+      AdditionalPaidInCapital: 'Additional Paid-in Capital',
+      AccumulatedOtherComprehensiveIncome: 'Accumulated Other Comprehensive Income',
+      RetainedEarnings: 'Retained Earnings',
+      TotalCommonShareholdersEquity: 'Total Common Shareholders\' Equity',
+      TotalEquity: 'Total Shareholders\' Equity',
+      TotalLiabilitiesAndEquity: 'Total Liabilities and Shareholders\' Equity',
+      // CF
+      OperatingCashFlow: 'Operating Cash Flow', InvestingCashFlow: 'Investing Cash Flow',
+      FinancingCashFlow: 'Financing Cash Flow', FreeCashFlow: 'Free Cash Flow',
+      CapEx: 'Capital Expenditure', DividendsPaid: 'Dividends Paid',
+      ShareRepurchases: 'Share Repurchases', DebtIssuance: 'Debt Issuance',
+      DebtRepayment: 'Debt Repayment', DepreciationInCF: 'D&A (CF)',
+      StockBasedComp: 'Stock-based Comp', Acquisitions: 'Acquisitions',
+      NetChangeInCash: 'Net Change in Cash',
+    };
+
+    const METRIC_COLORS = [
+      '#4fffb0', '#00c8ff', '#ffd166', '#ff6b6b',
+      '#b47aff', '#ff9a3c', '#39d0d8', '#f72585',
+    ];
+
+    // ─── CHART ────────────────────────────────────────────────────────────────────
+    let chartInstance = null;
+
+    function renderChart() {
+      const canvas = document.getElementById('main-chart');
+      if (!canvas || !state.financials || state.selectedMetrics.length === 0) return;
+
+      const { years, statements } = state.financials;
+      const stmtData = statements[state.activeTab] || {};
+
+      const datasets = state.selectedMetrics.map((metric, i) => {
+        const data = stmtData[metric] || {};
+        const values = years.map(y => data[y] !== undefined ? data[y] : null);
+        const color = METRIC_COLORS[i % METRIC_COLORS.length];
+        const isShare = isShareMetric(metric);
+        return {
+          label: METRIC_LABELS[metric] || metric,
+          data: values.map(v => v !== null ? (isShare ? v : v / 1e9) : null),
+          borderColor: color,
+          backgroundColor: state.chartType === 'bar' ? color + '80' : color + '18',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          tension: 0.3,
+          fill: state.chartType === 'area',
+          spanGaps: true,
+        };
+      });
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(canvas, {
+        type: state.chartType === 'area' ? 'line' : state.chartType,
+        data: { labels: years, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#8892a4',
+                font: { family: 'DM Mono', size: 11 },
+                boxWidth: 12,
+              }
+            },
+            tooltip: {
+              backgroundColor: '#181c22',
+              borderColor: '#2a2f3d',
+              borderWidth: 1,
+              titleColor: '#e8ecf4',
+              bodyColor: '#8892a4',
+              titleFont: { family: 'Syne', weight: '700', size: 13 },
+              bodyFont: { family: 'DM Mono', size: 11 },
+              padding: 12,
+              callbacks: {
+                label(ctx) {
+                  const metric = state.selectedMetrics[ctx.datasetIndex];
+                  const isShare = isShareMetric(metric);
+                  if (ctx.raw === null) return `${ctx.dataset.label}: N/A`;
+                  if (isShare) return `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}`;
+                  return `${ctx.dataset.label}: $${ctx.raw.toFixed(2)}B`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1e2330' },
+              ticks: { color: '#4e5566', font: { family: 'DM Mono', size: 10 } }
+            },
+            y: {
+              grid: { color: '#1e2330' },
+              ticks: {
+                color: '#4e5566',
+                font: { family: 'DM Mono', size: 10 },
+                callback(v) { return isShareMetric(state.selectedMetrics[0]) ? v.toFixed(1) : '$' + v.toFixed(1) + 'B'; }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ─── RENDER ───────────────────────────────────────────────────────────────────
+    function getLatestValue(metricData, years) {
+      for (let i = years.length - 1; i >= 0; i--) {
+        if (metricData[years[i]] !== undefined) return { year: years[i], val: metricData[years[i]] };
+      }
+      return null;
+    }
+
+    function renderMetricsGrid(stmtData, years) {
+      const entries = Object.entries(stmtData);
+      if (entries.length === 0) return '<p style="color:var(--text3);font-size:0.85rem;">No data available.</p>';
+
+      return `<div class="metrics-grid">` + entries.map(([metric, data]) => {
+        const latest = getLatestValue(data, years);
+        if (!latest) return '';
+        const isShare = isShareMetric(metric);
+        const formatted = fmt(latest.val, isShare);
+        const isNeg = latest.val < 0;
+        const selected = state.selectedMetrics.includes(metric);
+
+        // YoY change
+        const prevYear = String(parseInt(latest.year) - 1);
+        const prev = data[prevYear];
+        const chg = prev !== undefined ? pctChange(latest.val, prev) : null;
+        const chgStr = chg !== null ? (chg > 0 ? `▲ ${chg}%` : `▼ ${Math.abs(chg)}%`) : '';
+        const chgColor = chg !== null ? (chg > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)';
+
+        return `
+      <div class="metric-card ${selected ? 'selected' : ''}" onclick="toggleMetric('${metric}')">
+        <div class="metric-label">${METRIC_LABELS[metric] || metric}</div>
+        <div class="metric-value ${isNeg ? 'negative' : ''}">${formatted}</div>
+        <div class="metric-change" style="color:${chgColor}">${chgStr} <span style="color:var(--text3)">${latest.year}</span></div>
+      </div>`;
+      }).join('') + '</div>';
+    }
+
+    function renderTable(stmtData, years) {
+      const metrics = Object.entries(stmtData).filter(([, d]) => Object.keys(d).length > 0);
+      if (metrics.length === 0) return '';
+
+      const shownYears = years.slice(-20).reverse();
+
+      const header = `<tr><th>Metric</th>${shownYears.map(y => `<th>${y}</th>`).join('')}</tr>`;
+      let renderedRows = [];
+      let currentSection = null;
+
+      metrics.forEach(([metric, data]) => {
+        if (state.activeTab === 'balance_sheet') {
+          let expectedSection = null;
+          const assetsKeys = ['Cash', 'ShortTermInvestments', 'TotalCashAndCashEquivalents', 'AccountsReceivable', 'TotalTradeReceivables', 'Inventory', 'OtherCurrentAssets', 'CurrentAssets', 'PPE_Net', 'Goodwill', 'OtherLongTermAssets', 'TotalAssets'];
+          const liabKeys = ['AccountsPayable', 'AccruedExpenses', 'CurrentPortionLongTermDebt', 'UnearnedRevenue', 'CurrentLiabilities', 'LongTermDebt', 'Leases', 'OtherLongTermLiabilities', 'TotalLongTermLiabilities', 'TotalLiabilities'];
+          
+          if (assetsKeys.includes(metric)) expectedSection = 'Assets';
+          else if (liabKeys.includes(metric)) expectedSection = 'Liabilities';
+          else expectedSection = 'Equity';
+
+          if (expectedSection && expectedSection !== currentSection) {
+            currentSection = expectedSection;
+            renderedRows.push(`<tr class="section-header"><th colspan="${shownYears.length + 1}">${currentSection}</th></tr>`);
+          }
+        }
+
+        const isShare = isShareMetric(metric);
+        const cells = shownYears.map(y => {
+          const v = data[y];
+          if (v === undefined) return `<td class="na">—</td>`;
+          const cls = v < 0 ? 'negative' : '';
+          return `<td class="${cls}">${fmt(v, isShare)}</td>`;
+        }).join('');
+        
+        let rowCls = '';
+        let indentCls = '';
+        if (state.activeTab === 'balance_sheet') {
+          const isTotal = metric.startsWith('Total') || metric === 'CurrentAssets' || metric === 'CurrentLiabilities' || metric === 'RetainedEarnings';
+          if (isTotal) rowCls = 'total-row';
+          else indentCls = 'indent-cell';
+        }
+        
+        renderedRows.push(`<tr class="${rowCls}"><td class="${indentCls}">${METRIC_LABELS[metric] || metric}</td>${cells}</tr>`);
+      });
+      const rows = renderedRows.join('');
+
+      return `
+    <div class="table-section">
+      <div class="table-header">
+        <span class="table-title">Annual Data Table</span>
+        <button class="export-btn" onclick="exportCSV()">↓ Export CSV</button>
+      </div>
+      <div class="table-scroll">
+        <table><thead>${header}</thead><tbody>${rows}</tbody></table>
+      </div>
+    </div>`;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+
+      const searchHtml = `
+    <div class="search-hero">
+      <h1>20 Years of<br><em>SEC Financial Data</em></h1>
+      <p>Extract income statements, balance sheets &amp; cash flows from EDGAR 10-K filings</p>
+      <div class="search-box">
+        <input class="search-input" id="ticker-input" type="text"
+          placeholder="AAPL" maxlength="10"
+          value="${state.ticker}"
+          onkeydown="if(event.key==='Enter') search()"
+          oninput="state.ticker=this.value.toUpperCase();this.value=state.ticker"
+        />
+        <button class="search-btn" id="search-btn" onclick="search()" ${state.loading ? 'disabled' : ''}>
+          ${state.loading ? 'Loading…' : 'Analyze →'}
+        </button>
+      </div>
+      <div class="quick-tickers">
+        ${['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'BRK-B', 'JPM', 'JNJ'].map(t =>
+        `<span class="ticker-pill" onclick="quickSearch('${t}')">${t}</span>`
+      ).join('')}
+      </div>
+    </div>`;
+
+      let contentHtml = '';
+
+      if (state.loading) {
+        contentHtml = `
+      <div class="status-bar loading">
+        <div class="spinner"></div>
+        Fetching SEC EDGAR data for <strong>${state.ticker}</strong>… this may take 15–30 seconds
+      </div>`;
+      } else if (state.error) {
+        contentHtml = `
+      <div class="status-bar error">
+        ⚠ ${state.error}
+      </div>`;
+      } else if (state.companyInfo && state.financials) {
+        const { years, statements } = state.financials;
+        const info = state.companyInfo;
+        const stmtData = statements[state.activeTab] || {};
+
+        const tabsHtml = `
+      <div class="tabs">
+        ${TABS.map(t => `<div class="tab ${t.id === state.activeTab ? 'active' : ''}" onclick="setTab('${t.id}')">${t.label}</div>`).join('')}
+      </div>`;
+
+        const chartHtml = state.selectedMetrics.length > 0 ? `
+      <div class="chart-section">
+        <div class="chart-header">
+          <span class="chart-title">
+            ${state.selectedMetrics.map(m => METRIC_LABELS[m] || m).join(' · ')}
+          </span>
+          <div class="chart-controls">
+            ${['line', 'bar', 'area'].map(t => `
+              <button class="chart-type-btn ${state.chartType === t ? 'active' : ''}" onclick="setChartType('${t}')">${t}</button>
+            `).join('')}
+          </div>
+        </div>
+        <div class="chart-wrapper"><canvas id="main-chart"></canvas></div>
+      </div>` : '';
+
+        contentHtml = `
+      <div class="company-header">
+        <div>
+          <div class="company-name">${info.name}</div>
+          <div class="company-meta">
+            <span class="meta-badge ticker">${info.ticker}</span>
+            ${info.sic_description ? `<span class="meta-badge sic">${info.sic_description}</span>` : ''}
+            ${(info.exchanges || []).map(e => `<span class="meta-badge exchange">${e}</span>`).join('')}
+            ${info.state ? `<span class="meta-badge sic">${info.state}</span>` : ''}
+          </div>
+        </div>
+        <div class="data-coverage">
+          <div class="coverage-num">${years.length}</div>
+          <div class="coverage-label">Years of Data</div>
+        </div>
+      </div>
+
+      ${tabsHtml}
+      ${renderMetricsGrid(stmtData, years)}
+      <p style="font-size:0.72rem;color:var(--text3);margin-bottom:1.5rem;">
+        Click metrics above to add them to the chart. Multiple selections allowed.
+      </p>
+      ${chartHtml}
+      ${renderTable(stmtData, years)}
+    `;
+      } else {
+        contentHtml = `
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h2>Enter a stock ticker to begin</h2>
+        <p>Pulls directly from SEC EDGAR XBRL data — no API key required</p>
+      </div>`;
+      }
+
+      app.innerHTML = searchHtml + contentHtml;
+
+      // Focus input if empty
+      const input = document.getElementById('ticker-input');
+      if (input && !state.financials && !state.loading) input.focus();
+
+      // Render chart after DOM update
+      if (state.selectedMetrics.length > 0 && state.financials) {
+        setTimeout(renderChart, 50);
+      }
+
+      const chatToggle = document.getElementById('chat-toggle-btn');
+      if (chatToggle) {
+        chatToggle.style.display = (state.financials && !state.loading) ? 'block' : 'none';
+      }
+    }
+
+    // ─── CHAT ─────────────────────────────────────────────────────────────────────
+    function toggleChat() {
+      state.chatOpen = !state.chatOpen;
+      if (state.chatOpen) {
+        document.body.classList.add('chat-open');
+        setTimeout(() => document.getElementById('chat-input').focus(), 300);
+      } else {
+        document.body.classList.remove('chat-open');
+      }
+    }
+
+    async function sendChat() {
+      const input = document.getElementById('chat-input');
+      const btn = document.getElementById('chat-send-btn');
+      const msgText = input.value.trim();
+      if (!msgText || state.chatLoading) return;
+
+      const chatMessages = document.getElementById('chat-messages');
+      state.chatHistory.push({ role: 'user', content: msgText });
+      chatMessages.innerHTML += `<div class="msg msg-user">${msgText}</div>`;
+      input.value = '';
+
+      chatMessages.innerHTML += `<div class="msg msg-ai" id="chat-loading">Thinking...</div>`;
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      state.chatLoading = true;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE}/ticker/${state.ticker}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: state.chatHistory })
+        });
+
+        if (!res.ok) throw new Error('Chat failed');
+        const data = await res.json();
+
+        document.getElementById('chat-loading')?.remove();
+        state.chatHistory.push({ role: 'assistant', content: data.response });
+
+        const fmtResp = data.response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        chatMessages.innerHTML += `<div class="msg msg-ai">${fmtResp}</div>`;
+      } catch (e) {
+        document.getElementById('chat-loading')?.remove();
+        chatMessages.innerHTML += `<div class="msg msg-ai" style="color:var(--red);">Error: Could not get response.</div>`;
+      } finally {
+        state.chatLoading = false;
+        btn.disabled = false;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    }
+
+    // ─── ACTIONS ──────────────────────────────────────────────────────────────────
+    async function search() {
+      const raw = state.ticker.trim().toUpperCase();
+      if (!raw) return;
+      state.ticker = raw;
+      state.loading = true;
+      state.error = null;
+      state.companyInfo = null;
+      state.financials = null;
+      state.selectedMetrics = [];
+      render();
+
+      try {
+        const [infoRes, finRes] = await Promise.all([
+          fetch(`${API_BASE}/ticker/${raw}/info`),
+          fetch(`${API_BASE}/ticker/${raw}/financials`),
+        ]);
+
+        if (!infoRes.ok) {
+          const err = await infoRes.json();
+          throw new Error(err.detail || 'Failed to fetch company info');
+        }
+        if (!finRes.ok) {
+          const err = await finRes.json();
+          throw new Error(err.detail || 'Failed to fetch financials');
+        }
+
+        state.companyInfo = await infoRes.json();
+        state.financials = await finRes.json();
+
+        if (state.financials.statements && state.financials.statements.income_statement) {
+          const inc = state.financials.statements.income_statement;
+          
+          if (inc.OperatingProfit && inc.DepreciationAmortization) {
+            inc.EBITDA = {};
+            for (let y of Object.keys(inc.OperatingProfit)) {
+              inc.EBITDA[y] = (inc.OperatingProfit[y] || 0) + (inc.DepreciationAmortization[y] || 0);
+            }
+          }
+          
+          if (inc.TotalRevenues) {
+            inc.TotalRevenuesChg = {};
+            const years = Object.keys(inc.TotalRevenues).sort();
+            for (let i = 1; i < years.length; i++) {
+              const y = years[i];
+              const prevY = years[i-1];
+              const curr = inc.TotalRevenues[y];
+              const prev = inc.TotalRevenues[prevY];
+              if (prev && curr !== undefined) {
+                inc.TotalRevenuesChg[y] = ((curr - prev) / Math.abs(prev) * 100);
+              }
+            }
+          }
+          
+          if (inc.GrossProfit && inc.TotalRevenues) {
+            inc.GrossProfitMargin = {};
+            for (let y of Object.keys(inc.GrossProfit)) {
+              if (inc.TotalRevenues[y]) {
+                inc.GrossProfitMargin[y] = (inc.GrossProfit[y] / inc.TotalRevenues[y]) * 100;
+              }
+            }
+          }
+          
+          if (inc.OperatingProfit && inc.TotalRevenues) {
+            inc.OperatingMargin = {};
+            for (let y of Object.keys(inc.OperatingProfit)) {
+              if (inc.TotalRevenues[y]) {
+                inc.OperatingMargin[y] = (inc.OperatingProfit[y] / inc.TotalRevenues[y]) * 100;
+              }
+            }
+          }
+          
+          if (inc.ProvisionForIncomeTaxes && inc.IncomeBeforeTaxes) {
+            inc.EffectiveTaxRate = {};
+            for (let y of Object.keys(inc.ProvisionForIncomeTaxes)) {
+              if (inc.IncomeBeforeTaxes[y]) {
+                inc.EffectiveTaxRate[y] = (inc.ProvisionForIncomeTaxes[y] / inc.IncomeBeforeTaxes[y]) * 100;
+              }
+            }
+          }
+
+          const incOrder = [
+            'TotalRevenues', 'TotalRevenuesChg', 'CostOfSales', 'GrossProfit', 'GrossProfitMargin',
+            'SGA_Expense', 'RD_Expense', 'OperatingProfit', 'OperatingMargin', 'NonOperatingIncome',
+            'TotalNonOperatingIncome', 'IncomeBeforeTaxes', 'ProvisionForIncomeTaxes', 'ConsolidatedNetIncome',
+            'NetIncomeCommon', 'BasicEPS', 'DilutedEPS', 'BasicWeightedShares', 'TotalSharesOutstanding',
+            'DilutedWeightedShares', 'SharesOutstanding', 'EBITDA', 'EffectiveTaxRate'
+          ];
+          
+          const orderedInc = {};
+          incOrder.forEach(k => {
+            if (inc[k]) orderedInc[k] = inc[k];
+          });
+          state.financials.statements.income_statement = orderedInc;
+        }
+
+        // Auto-select first key metric
+        const stmtData = state.financials.statements[state.activeTab] || {};
+        const keys = Object.keys(stmtData);
+        if (keys.length > 0) state.selectedMetrics = [keys[0]];
+
+      } catch (e) {
+        state.error = e.message || 'Unknown error. Make sure the backend is running on port 8000.';
+      } finally {
+        state.loading = false;
+        render();
+      }
+    }
+
+    function quickSearch(ticker) {
+      state.ticker = ticker;
+      render();
+      setTimeout(() => search(), 10);
+    }
+
+    function setTab(tab) {
+      state.activeTab = tab;
+      state.selectedMetrics = [];
+      render();
+    }
+
+    function toggleMetric(metric) {
+      if (state.selectedMetrics.includes(metric)) {
+        state.selectedMetrics = state.selectedMetrics.filter(m => m !== metric);
+      } else {
+        if (state.selectedMetrics.length >= 4) state.selectedMetrics.shift();
+        state.selectedMetrics.push(metric);
+      }
+      render();
+    }
+
+    function setChartType(type) {
+      state.chartType = type;
+      render();
+    }
+
+    function exportCSV() {
+      if (!state.financials) return;
+      const { years, statements } = state.financials;
+      const stmtData = statements[state.activeTab] || {};
+      const metrics = Object.keys(stmtData);
+
+      let csv = 'Metric,' + years.join(',') + '\n';
+      metrics.forEach(m => {
+        const row = [METRIC_LABELS[m] || m, ...years.map(y => {
+          const v = stmtData[m][y];
+          return v !== undefined ? v : '';
+        })];
+        csv += row.join(',') + '\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${state.ticker}_${state.activeTab}_${new Date().getFullYear()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ─── INIT ─────────────────────────────────────────────────────────────────────
+    render();
+  </script>
+</body>
+
+</html>
