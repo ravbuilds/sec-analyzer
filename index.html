@@ -908,25 +908,24 @@
 
     const METRIC_LABELS = {
       // Income
-      TotalRevenues: 'Total Revenues',
-      TotalRevenuesChg: 'Total Revenues %Chg',
-      CostOfSales: 'Cost of Sales',
+      TotalRevenues: 'Total Revenue',
+      TotalRevenuesChg: 'Total Revenue %chg',
+      CostOfSales: 'Cost of sales',
       GrossProfit: 'Gross Profit',
       GrossProfitMargin: 'Gross Profit Margin',
-      SGA_Expense: 'Selling, General & Administrative Expenses',
-      RD_Expense: 'Research & Development Expenses',
+      SGA_Expense: 'SG&A Expenses',
+      OtherOperatingExpenses: 'Other Operating Expenses',
       OperatingProfit: 'Operating Profit',
-      OperatingMargin: 'Operating Margin',
+      OperatingMargin: 'Operating Profit Margin',
+      InterestAndInvestmentIncome: 'Interest and Investment Income',
+      InterestExpense: 'Interest Expense',
       NonOperatingIncome: 'Non-Operating Income',
-      TotalNonOperatingIncome: 'Total Non-Operating Income',
-      IncomeBeforeTaxes: 'Income Before Provision for Income Taxes',
-      ProvisionForIncomeTaxes: 'Provision for Income Taxes',
+      IncomeBeforeTaxes: 'Income Before Taxes',
+      IncomeTax: 'Income Tax',
       ConsolidatedNetIncome: 'Consolidated Net Income',
-      NetIncomeCommon: 'Net Income Attributable to Common Shareholders',
       BasicEPS: 'Basic EPS',
       DilutedEPS: 'Diluted EPS',
       BasicWeightedShares: 'Basic Weighted Average Shares Outstanding',
-      TotalSharesOutstanding: 'Total Shares Outstanding',
       DilutedWeightedShares: 'Diluted Weighted Average Shares Outstanding',
       SharesOutstanding: 'Shares Outstanding',
       EBITDA: 'EBITDA',
@@ -973,6 +972,8 @@
       ChangesInTradeReceivables: 'Changes in Trade Receivables',
       ChangesInInventories: 'Changes in Inventories',
       ChangesInAccountsPayable: 'Changes in Accounts Payable',
+      ChangesInAccruedExpenses: 'Changes in Accrued Expenses',
+      ChangesInIncomeTaxPayable: 'Changes in Income Tax Payable',
       ChangesInUnearnedRevenue: 'Changes in Unearned Revenue',
       ChangesInOtherOperatingActivities: 'Changes in Other Operating Activities',
       CashFromOperatingActivities: 'Cash from Operating Activities',
@@ -982,6 +983,7 @@
       PurchasesOfInvestments: 'Purchases of Investments',
       ProceedsFromSaleOfInvestments: 'Proceeds from Sale of Investments',
       PaymentsForBusinessAcquisitions: 'Payments for Business Acquisitions',
+      ProceedsFromBusinessDivestments: 'Proceeds from Business Divestments',
       OtherInvestingActivities: 'Other Investing Activities',
       CashFromInvestingActivities: 'Cash from Investing Activities',
       
@@ -1139,7 +1141,7 @@
     }
 
     function renderTable(stmtData, years) {
-      const metrics = Object.entries(stmtData).filter(([, d]) => Object.keys(d).length > 0);
+      const metrics = Object.entries(stmtData);
       if (metrics.length === 0) return '';
 
       const shownYears = years.slice(-20).reverse();
@@ -1160,8 +1162,8 @@
 
         } else if (state.activeTab === 'cash_flow') {
           let expectedSection = null;
-          const operatingKeys = ['NetIncome', 'DepreciationAmortization', 'ShareBasedCompensation', 'OtherAdjustments', 'ChangesInTradeReceivables', 'ChangesInInventories', 'ChangesInAccountsPayable', 'ChangesInUnearnedRevenue', 'ChangesInOtherOperatingActivities', 'CashFromOperatingActivities'];
-          const investingKeys = ['CapitalExpenditure', 'PurchasesOfIntangibleAssets', 'PurchasesOfInvestments', 'ProceedsFromSaleOfInvestments', 'PaymentsForBusinessAcquisitions', 'OtherInvestingActivities', 'CashFromInvestingActivities'];
+          const operatingKeys = ['NetIncome', 'DepreciationAmortization', 'ShareBasedCompensation', 'OtherAdjustments', 'ChangesInTradeReceivables', 'ChangesInInventories', 'ChangesInAccountsPayable', 'ChangesInAccruedExpenses', 'ChangesInIncomeTaxPayable', 'ChangesInUnearnedRevenue', 'ChangesInOtherOperatingActivities', 'CashFromOperatingActivities'];
+          const investingKeys = ['CapitalExpenditure', 'PurchasesOfIntangibleAssets', 'PurchasesOfInvestments', 'ProceedsFromSaleOfInvestments', 'PaymentsForBusinessAcquisitions', 'ProceedsFromBusinessDivestments', 'OtherInvestingActivities', 'CashFromInvestingActivities'];
           const financingKeys = ['IssuanceOfShortTermDebt', 'RepaymentsOfShortTermDebt', 'NetIssuanceOfShortTermDebt', 'IssuanceOfLongTermDebt', 'RepaymentsOfLongTermDebt', 'NetIssuanceOfLongTermDebt', 'IssuanceOfCommonShares', 'RepurchasesOfCommonShares', 'NetIssuanceOfCommonShares', 'CommonShareDividendsPaid', 'OtherFinancingActivities', 'CashFromFinancingActivities'];
           
           if (operatingKeys.includes(metric)) expectedSection = 'Operating Activities';
@@ -1416,13 +1418,110 @@
         if (state.financials.statements && state.financials.statements.income_statement) {
           const inc = state.financials.statements.income_statement;
           
-          if (inc.OperatingProfit && inc.DepreciationAmortization) {
-            inc.EBITDA = {};
-            for (let y of Object.keys(inc.OperatingProfit)) {
-              inc.EBITDA[y] = (inc.OperatingProfit[y] || 0) + (inc.DepreciationAmortization[y] || 0);
+          // 1. Shares Outstanding fallback
+          if (!inc.SharesOutstanding && inc.TotalSharesOutstanding) {
+            inc.SharesOutstanding = { ...inc.TotalSharesOutstanding };
+          }
+
+          // 2. Cost of Sales
+          if (!inc.CostOfSales && inc.TotalRevenues && inc.GrossProfit) {
+            inc.CostOfSales = {};
+            for (let y of Object.keys(inc.TotalRevenues)) {
+              if (inc.GrossProfit[y] !== undefined) {
+                inc.CostOfSales[y] = inc.TotalRevenues[y] - inc.GrossProfit[y];
+              }
             }
           }
-          
+
+          // 3. Gross Profit
+          if (!inc.GrossProfit && inc.TotalRevenues && inc.CostOfSales) {
+            inc.GrossProfit = {};
+            for (let y of Object.keys(inc.TotalRevenues)) {
+              if (inc.CostOfSales[y] !== undefined) {
+                inc.GrossProfit[y] = inc.TotalRevenues[y] - inc.CostOfSales[y];
+              }
+            }
+          }
+
+          // 4. SG&A Expense (if split)
+          if (!inc.SGA_Expense && (inc.SellingAndMarketingExpense || inc.GeneralAndAdministrativeExpense)) {
+            inc.SGA_Expense = {};
+            const years = new Set([...Object.keys(inc.SellingAndMarketingExpense || {}), ...Object.keys(inc.GeneralAndAdministrativeExpense || {})]);
+            years.forEach(y => {
+              inc.SGA_Expense[y] = (inc.SellingAndMarketingExpense?.[y] || 0) + (inc.GeneralAndAdministrativeExpense?.[y] || 0);
+            });
+          }
+
+          // 5. Operating Profit (if missing)
+          if (!inc.OperatingProfit && inc.GrossProfit) {
+            inc.OperatingProfit = {};
+            for (let y of Object.keys(inc.GrossProfit)) {
+              const sga = inc.SGA_Expense?.[y] || 0;
+              const other = inc.OtherOperatingExpenses?.[y] || 0;
+              inc.OperatingProfit[y] = inc.GrossProfit[y] - sga - other;
+            }
+          }
+
+          // 6. Other Operating Expenses (residual if missing)
+          if (!inc.OtherOperatingExpenses && inc.GrossProfit && inc.OperatingProfit !== undefined) {
+            inc.OtherOperatingExpenses = {};
+            for (let y of Object.keys(inc.GrossProfit)) {
+              if (inc.OperatingProfit[y] !== undefined) {
+                const sga = inc.SGA_Expense?.[y] || 0;
+                inc.OtherOperatingExpenses[y] = inc.GrossProfit[y] - inc.OperatingProfit[y] - sga;
+              }
+            }
+          }
+
+          // 5. Income Before Taxes, Net Income, Income Tax relationship
+          if (!inc.IncomeBeforeTaxes && inc.ConsolidatedNetIncome && inc.IncomeTax) {
+            inc.IncomeBeforeTaxes = {};
+            for (let y of Object.keys(inc.ConsolidatedNetIncome)) {
+              inc.IncomeBeforeTaxes[y] = inc.ConsolidatedNetIncome[y] + (inc.IncomeTax[y] || 0);
+            }
+          }
+          if (!inc.ConsolidatedNetIncome && inc.IncomeBeforeTaxes && inc.IncomeTax) {
+            inc.ConsolidatedNetIncome = {};
+            for (let y of Object.keys(inc.IncomeBeforeTaxes)) {
+              inc.ConsolidatedNetIncome[y] = inc.IncomeBeforeTaxes[y] - (inc.IncomeTax[y] || 0);
+            }
+          }
+          if (!inc.IncomeTax && inc.IncomeBeforeTaxes && inc.ConsolidatedNetIncome) {
+            inc.IncomeTax = {};
+            for (let y of Object.keys(inc.IncomeBeforeTaxes)) {
+              inc.IncomeTax[y] = inc.IncomeBeforeTaxes[y] - (inc.ConsolidatedNetIncome[y] || 0);
+            }
+          }
+
+          // 6. EPS (if missing)
+          if (!inc.BasicEPS && inc.ConsolidatedNetIncome && inc.BasicWeightedShares) {
+            inc.BasicEPS = {};
+            for (let y of Object.keys(inc.ConsolidatedNetIncome)) {
+              if (inc.BasicWeightedShares[y]) inc.BasicEPS[y] = inc.ConsolidatedNetIncome[y] / inc.BasicWeightedShares[y];
+            }
+          }
+          if (!inc.DilutedEPS && inc.ConsolidatedNetIncome && inc.DilutedWeightedShares) {
+            inc.DilutedEPS = {};
+            for (let y of Object.keys(inc.ConsolidatedNetIncome)) {
+              if (inc.DilutedWeightedShares[y]) inc.DilutedEPS[y] = inc.ConsolidatedNetIncome[y] / inc.DilutedWeightedShares[y];
+            }
+          }
+
+          // 7. EBITDA
+          if (!inc.EBITDA) {
+            inc.EBITDA = {};
+            if (inc.OperatingProfit) {
+              for (let y of Object.keys(inc.OperatingProfit)) {
+                inc.EBITDA[y] = inc.OperatingProfit[y] + (inc.DepreciationAmortization?.[y] || 0);
+              }
+            } else if (inc.ConsolidatedNetIncome) {
+              for (let y of Object.keys(inc.ConsolidatedNetIncome)) {
+                inc.EBITDA[y] = inc.ConsolidatedNetIncome[y] + (inc.IncomeTax?.[y] || 0) + (inc.InterestExpense?.[y] || 0) + (inc.DepreciationAmortization?.[y] || 0);
+              }
+            }
+          }
+
+          // 8. Margins & Rates
           if (inc.TotalRevenues) {
             inc.TotalRevenuesChg = {};
             const years = Object.keys(inc.TotalRevenues).sort();
@@ -1436,7 +1535,7 @@
               }
             }
           }
-          
+
           if (inc.GrossProfit && inc.TotalRevenues) {
             inc.GrossProfitMargin = {};
             for (let y of Object.keys(inc.GrossProfit)) {
@@ -1455,26 +1554,26 @@
             }
           }
           
-          if (inc.ProvisionForIncomeTaxes && inc.IncomeBeforeTaxes) {
+          if (inc.IncomeTax && inc.IncomeBeforeTaxes) {
             inc.EffectiveTaxRate = {};
-            for (let y of Object.keys(inc.ProvisionForIncomeTaxes)) {
+            for (let y of Object.keys(inc.IncomeTax)) {
               if (inc.IncomeBeforeTaxes[y]) {
-                inc.EffectiveTaxRate[y] = (inc.ProvisionForIncomeTaxes[y] / inc.IncomeBeforeTaxes[y]) * 100;
+                inc.EffectiveTaxRate[y] = (inc.IncomeTax[y] / inc.IncomeBeforeTaxes[y]) * 100;
               }
             }
           }
 
           const incOrder = [
             'TotalRevenues', 'TotalRevenuesChg', 'CostOfSales', 'GrossProfit', 'GrossProfitMargin',
-            'SGA_Expense', 'RD_Expense', 'OperatingProfit', 'OperatingMargin', 'NonOperatingIncome',
-            'TotalNonOperatingIncome', 'IncomeBeforeTaxes', 'ProvisionForIncomeTaxes', 'ConsolidatedNetIncome',
-            'NetIncomeCommon', 'BasicEPS', 'DilutedEPS', 'BasicWeightedShares', 'TotalSharesOutstanding',
+            'SGA_Expense', 'OtherOperatingExpenses', 'OperatingProfit', 'OperatingMargin',
+            'InterestAndInvestmentIncome', 'InterestExpense', 'NonOperatingIncome', 'IncomeBeforeTaxes',
+            'IncomeTax', 'ConsolidatedNetIncome', 'BasicEPS', 'DilutedEPS', 'BasicWeightedShares',
             'DilutedWeightedShares', 'SharesOutstanding', 'EBITDA', 'EffectiveTaxRate'
           ];
           
           const orderedInc = {};
           incOrder.forEach(k => {
-            if (inc[k]) orderedInc[k] = inc[k];
+            orderedInc[k] = inc[k] || {};
           });
           state.financials.statements.income_statement = orderedInc;
         }
@@ -1528,11 +1627,12 @@
 
           const cfOrder = [
             'NetIncome', 'DepreciationAmortization', 'ShareBasedCompensation', 'OtherAdjustments',
-            'ChangesInTradeReceivables', 'ChangesInInventories', 'ChangesInAccountsPayable', 'ChangesInUnearnedRevenue',
+            'ChangesInTradeReceivables', 'ChangesInInventories', 'ChangesInAccountsPayable', 
+            'ChangesInAccruedExpenses', 'ChangesInIncomeTaxPayable', 'ChangesInUnearnedRevenue',
             'ChangesInOtherOperatingActivities', 'CashFromOperatingActivities',
             
             'CapitalExpenditure', 'PurchasesOfIntangibleAssets', 'PurchasesOfInvestments', 'ProceedsFromSaleOfInvestments',
-            'PaymentsForBusinessAcquisitions', 'OtherInvestingActivities', 'CashFromInvestingActivities',
+            'PaymentsForBusinessAcquisitions', 'ProceedsFromBusinessDivestments', 'OtherInvestingActivities', 'CashFromInvestingActivities',
             
             'IssuanceOfShortTermDebt', 'RepaymentsOfShortTermDebt', 'NetIssuanceOfShortTermDebt',
             'IssuanceOfLongTermDebt', 'RepaymentsOfLongTermDebt', 'NetIssuanceOfLongTermDebt',
@@ -1544,7 +1644,7 @@
           
           const orderedCf = {};
           cfOrder.forEach(k => {
-            if (cf[k]) orderedCf[k] = cf[k];
+            orderedCf[k] = cf[k] || {};
           });
           state.financials.statements.cash_flow = orderedCf;
         }

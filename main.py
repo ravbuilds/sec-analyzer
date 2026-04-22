@@ -32,7 +32,7 @@ CONCEPT_MAP = {
             "NetRevenues",
         ],
         "CostOfSales": [
-            "CostOfRevenue", "CostOfGoodsSold", "CostOfGoodsAndServicesSold", "CostOfSales",
+            "CostOfRevenue", "CostOfGoodsSold", "CostOfGoodsAndServicesSold", "CostOfSales", "CostOfServices"
         ],
         "GrossProfit": [
             "GrossProfit",
@@ -40,11 +40,23 @@ CONCEPT_MAP = {
         "SGA_Expense": [
             "SellingGeneralAndAdministrativeExpense",
         ],
-        "RD_Expense": [
-            "ResearchAndDevelopmentExpense",
+        "SellingAndMarketingExpense": [
+            "SellingAndMarketingExpense", "SellingExpense"
+        ],
+        "GeneralAndAdministrativeExpense": [
+            "GeneralAndAdministrativeExpense"
+        ],
+        "OtherOperatingExpenses": [
+            "OtherOperatingIncomeExpenseNet", "OtherOperatingIncomeExpense", "OtherOperatingExpense", "OperatingExpenses"
         ],
         "OperatingProfit": [
             "OperatingIncomeLoss",
+        ],
+        "InterestAndInvestmentIncome": [
+            "InvestmentIncomeInterest", "InterestAndDividendIncomeOperating", "InterestIncomeOther"
+        ],
+        "InterestExpense": [
+            "InterestExpense", "InterestExpenseDebt", "InterestExpenseOperating"
         ],
         "NonOperatingIncome": [
             "NonoperatingIncomeExpense",
@@ -53,14 +65,11 @@ CONCEPT_MAP = {
             "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
             "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments",
         ],
-        "ProvisionForIncomeTaxes": [
+        "IncomeTax": [
             "IncomeTaxExpenseBenefit",
         ],
         "ConsolidatedNetIncome": [
             "NetIncomeLoss", "ProfitLoss",
-        ],
-        "NetIncomeCommon": [
-            "NetIncomeLossAvailableToCommonStockholdersBasic",
         ],
         "BasicEPS": [
             "EarningsPerShareBasic",
@@ -160,6 +169,12 @@ CONCEPT_MAP = {
         "ChangesInAccountsPayable": [
             "IncreaseDecreaseInAccountsPayable"
         ],
+        "ChangesInAccruedExpenses": [
+            "IncreaseDecreaseInAccruedLiabilities", "IncreaseDecreaseInAccruedLiabilitiesAndOtherOperatingLiabilities"
+        ],
+        "ChangesInIncomeTaxPayable": [
+            "IncreaseDecreaseInIncomeTaxesPayableNetOfIncomeTaxReceivable", "IncreaseDecreaseInIncomeTaxes"
+        ],
         "ChangesInUnearnedRevenue": [
             "IncreaseDecreaseInDeferredRevenue"
         ],
@@ -185,6 +200,9 @@ CONCEPT_MAP = {
         ],
         "PaymentsForBusinessAcquisitions": [
             "PaymentsToAcquireBusinessesNetOfCashAcquired"
+        ],
+        "ProceedsFromBusinessDivestments": [
+            "ProceedsFromSaleOfBusinesses", "ProceedsFromDivestitureOfBusinesses"
         ],
         "OtherInvestingActivities": [
             "PaymentsForOtherInvestingActivities"
@@ -326,6 +344,20 @@ def extract_annual_data(facts: dict, concept_aliases: list) -> dict:
                 year = e.get("end", "")[:4]
                 if not year.isdigit():
                     continue
+                
+                # Filter out period facts (like Income Statement/Cash Flow) that don't span ~1 year
+                start = e.get("start")
+                end_str = e.get("end")
+                if start and end_str:
+                    try:
+                        from datetime import datetime
+                        d1 = datetime.strptime(start, "%Y-%m-%d")
+                        d2 = datetime.strptime(end_str, "%Y-%m-%d")
+                        days = (d2 - d1).days
+                        if days < 300:
+                            continue
+                    except Exception:
+                        pass
                 # Prefer most recent filing for the year
                 if year not in annual or e.get("filed", "") > annual[year].get("filed", ""):
                     annual[year] = e
