@@ -868,10 +868,11 @@
     };
 
     // ─── FORMATTERS ───────────────────────────────────────────────────────────────
-    function fmt(val, isShares = false) {
+    function fmt(val, isShares = false, isPercent = false) {
       if (val === null || val === undefined) return '—';
       const abs = Math.abs(val);
       const sign = val < 0 ? '-' : '';
+      if (isPercent) return sign + abs.toFixed(1) + '%';
       if (isShares) {
         if (abs >= 1e9) return sign + (abs / 1e9).toFixed(2) + 'B';
         if (abs >= 1e6) return sign + (abs / 1e6).toFixed(1) + 'M';
@@ -886,7 +887,11 @@
     }
 
     function isShareMetric(key) {
-      return key.includes('Shares') || key === 'EPS_Basic' || key === 'EPS_Diluted';
+      return key.includes('Shares') || key === 'BasicEPS' || key === 'DilutedEPS';
+    }
+
+    function isPercentMetric(key) {
+      return key.includes('Margin') || key.includes('Chg') || key.includes('Rate');
     }
 
     function pctChange(curr, prev) {
@@ -961,12 +966,42 @@
       TotalEquity: 'Total Shareholders\' Equity',
       TotalLiabilitiesAndEquity: 'Total Liabilities and Shareholders\' Equity',
       // CF
-      OperatingCashFlow: 'Operating Cash Flow', InvestingCashFlow: 'Investing Cash Flow',
-      FinancingCashFlow: 'Financing Cash Flow', FreeCashFlow: 'Free Cash Flow',
-      CapEx: 'Capital Expenditure', DividendsPaid: 'Dividends Paid',
-      ShareRepurchases: 'Share Repurchases', DebtIssuance: 'Debt Issuance',
-      DebtRepayment: 'Debt Repayment', DepreciationInCF: 'D&A (CF)',
-      StockBasedComp: 'Stock-based Comp', Acquisitions: 'Acquisitions',
+      NetIncome: 'Net Income',
+      DepreciationAmortization: 'Depreciation & Amortization',
+      ShareBasedCompensation: 'Share-Based Compensation Expense',
+      OtherAdjustments: 'Other Adjustments',
+      ChangesInTradeReceivables: 'Changes in Trade Receivables',
+      ChangesInInventories: 'Changes in Inventories',
+      ChangesInAccountsPayable: 'Changes in Accounts Payable',
+      ChangesInUnearnedRevenue: 'Changes in Unearned Revenue',
+      ChangesInOtherOperatingActivities: 'Changes in Other Operating Activities',
+      CashFromOperatingActivities: 'Cash from Operating Activities',
+      
+      CapitalExpenditure: 'Capital Expenditure',
+      PurchasesOfIntangibleAssets: 'Purchases of Intangible Assets',
+      PurchasesOfInvestments: 'Purchases of Investments',
+      ProceedsFromSaleOfInvestments: 'Proceeds from Sale of Investments',
+      PaymentsForBusinessAcquisitions: 'Payments for Business Acquisitions',
+      OtherInvestingActivities: 'Other Investing Activities',
+      CashFromInvestingActivities: 'Cash from Investing Activities',
+      
+      IssuanceOfShortTermDebt: 'Issuance of Short-Term Debt',
+      RepaymentsOfShortTermDebt: 'Repayments of Short-Term Debt',
+      NetIssuanceOfShortTermDebt: 'Net Issuance / (Repayments) of Short-Term Debt',
+      IssuanceOfLongTermDebt: 'Issuance of Long-Term Debt',
+      RepaymentsOfLongTermDebt: 'Repayments of Long-Term Debt',
+      NetIssuanceOfLongTermDebt: 'Net Issuance / (Repayments) of Long-Term Debt',
+      IssuanceOfCommonShares: 'Issuance of Common Shares',
+      RepurchasesOfCommonShares: 'Repurchases of Common Shares',
+      NetIssuanceOfCommonShares: 'Net Issuance / (Repurchases) of Common Shares',
+      CommonShareDividendsPaid: 'Common Share Dividends Paid',
+      OtherFinancingActivities: 'Other Financing Activities',
+      CashFromFinancingActivities: 'Cash from Financing Activities',
+      
+      FreeCashFlow: 'Free Cash Flow',
+      NOPAT: 'NOPAT',
+      LeveredFreeCashFlow: 'Levered Free Cash Flow',
+      UnleveredFreeCashFlow: 'Unlevered Free Cash Flow',
       NetChangeInCash: 'Net Change in Cash',
     };
 
@@ -990,9 +1025,10 @@
         const values = years.map(y => data[y] !== undefined ? data[y] : null);
         const color = METRIC_COLORS[i % METRIC_COLORS.length];
         const isShare = isShareMetric(metric);
+        const isPercent = isPercentMetric(metric);
         return {
           label: METRIC_LABELS[metric] || metric,
-          data: values.map(v => v !== null ? (isShare ? v : v / 1e9) : null),
+          data: values.map(v => v !== null ? (isShare || isPercent ? v : v / 1e9) : null),
           borderColor: color,
           backgroundColor: state.chartType === 'bar' ? color + '80' : color + '18',
           borderWidth: 2,
@@ -1034,7 +1070,9 @@
                 label(ctx) {
                   const metric = state.selectedMetrics[ctx.datasetIndex];
                   const isShare = isShareMetric(metric);
+                  const isPercent = isPercentMetric(metric);
                   if (ctx.raw === null) return `${ctx.dataset.label}: N/A`;
+                  if (isPercent) return `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%`;
                   if (isShare) return `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}`;
                   return `${ctx.dataset.label}: $${ctx.raw.toFixed(2)}B`;
                 }
@@ -1051,7 +1089,11 @@
               ticks: {
                 color: '#4e5566',
                 font: { family: 'DM Mono', size: 10 },
-                callback(v) { return isShareMetric(state.selectedMetrics[0]) ? v.toFixed(1) : '$' + v.toFixed(1) + 'B'; }
+                callback(v) { 
+                  const metric = state.selectedMetrics[0];
+                  if (isPercentMetric(metric)) return v.toFixed(1) + '%';
+                  return isShareMetric(metric) ? v.toFixed(1) : '$' + v.toFixed(1) + 'B'; 
+                }
               }
             }
           }
@@ -1075,7 +1117,8 @@
         const latest = getLatestValue(data, years);
         if (!latest) return '';
         const isShare = isShareMetric(metric);
-        const formatted = fmt(latest.val, isShare);
+        const isPercent = isPercentMetric(metric);
+        const formatted = fmt(latest.val, isShare, isPercent);
         const isNeg = latest.val < 0;
         const selected = state.selectedMetrics.includes(metric);
 
@@ -1115,6 +1158,17 @@
           else if (liabKeys.includes(metric)) expectedSection = 'Liabilities';
           else expectedSection = 'Equity';
 
+        } else if (state.activeTab === 'cash_flow') {
+          let expectedSection = null;
+          const operatingKeys = ['NetIncome', 'DepreciationAmortization', 'ShareBasedCompensation', 'OtherAdjustments', 'ChangesInTradeReceivables', 'ChangesInInventories', 'ChangesInAccountsPayable', 'ChangesInUnearnedRevenue', 'ChangesInOtherOperatingActivities', 'CashFromOperatingActivities'];
+          const investingKeys = ['CapitalExpenditure', 'PurchasesOfIntangibleAssets', 'PurchasesOfInvestments', 'ProceedsFromSaleOfInvestments', 'PaymentsForBusinessAcquisitions', 'OtherInvestingActivities', 'CashFromInvestingActivities'];
+          const financingKeys = ['IssuanceOfShortTermDebt', 'RepaymentsOfShortTermDebt', 'NetIssuanceOfShortTermDebt', 'IssuanceOfLongTermDebt', 'RepaymentsOfLongTermDebt', 'NetIssuanceOfLongTermDebt', 'IssuanceOfCommonShares', 'RepurchasesOfCommonShares', 'NetIssuanceOfCommonShares', 'CommonShareDividendsPaid', 'OtherFinancingActivities', 'CashFromFinancingActivities'];
+          
+          if (operatingKeys.includes(metric)) expectedSection = 'Operating Activities';
+          else if (investingKeys.includes(metric)) expectedSection = 'Investing Activities';
+          else if (financingKeys.includes(metric)) expectedSection = 'Financing Activities';
+          else expectedSection = 'Free Cash Flow';
+
           if (expectedSection && expectedSection !== currentSection) {
             currentSection = expectedSection;
             renderedRows.push(`<tr class="section-header"><th colspan="${shownYears.length + 1}">${currentSection}</th></tr>`);
@@ -1122,17 +1176,26 @@
         }
 
         const isShare = isShareMetric(metric);
+        const isPercent = isPercentMetric(metric);
         const cells = shownYears.map(y => {
           const v = data[y];
           if (v === undefined) return `<td class="na">—</td>`;
           const cls = v < 0 ? 'negative' : '';
-          return `<td class="${cls}">${fmt(v, isShare)}</td>`;
+          return `<td class="${cls}">${fmt(v, isShare, isPercent)}</td>`;
         }).join('');
         
         let rowCls = '';
         let indentCls = '';
         if (state.activeTab === 'balance_sheet') {
           const isTotal = metric.startsWith('Total') || metric === 'CurrentAssets' || metric === 'CurrentLiabilities' || metric === 'RetainedEarnings';
+          if (isTotal) rowCls = 'total-row';
+          else indentCls = 'indent-cell';
+        } else if (state.activeTab === 'income_statement') {
+          const isTotal = metric === 'TotalRevenues' || metric === 'GrossProfit' || metric === 'OperatingProfit' || metric === 'ConsolidatedNetIncome' || metric === 'EBITDA';
+          if (isTotal) rowCls = 'total-row';
+          else indentCls = 'indent-cell';
+        } else if (state.activeTab === 'cash_flow') {
+          const isTotal = metric.startsWith('CashFrom') || metric.includes('FreeCashFlow') || metric === 'NetChangeInCash' || metric.startsWith('NetIssuance') || metric === 'NOPAT';
           if (isTotal) rowCls = 'total-row';
           else indentCls = 'indent-cell';
         }
@@ -1414,6 +1477,76 @@
             if (inc[k]) orderedInc[k] = inc[k];
           });
           state.financials.statements.income_statement = orderedInc;
+        }
+
+        if (state.financials.statements && state.financials.statements.cash_flow) {
+          const cf = state.financials.statements.cash_flow;
+          const inc = state.financials.statements.income_statement || {};
+          
+          const computeNet = (issuance, repayment) => {
+            const res = {};
+            const years = new Set([...Object.keys(issuance||{}), ...Object.keys(repayment||{})]);
+            years.forEach(y => {
+              const iss = issuance?.[y] || 0;
+              const rep = repayment?.[y] || 0;
+              res[y] = iss - Math.abs(rep);
+            });
+            return res;
+          };
+
+          cf.NetIssuanceOfShortTermDebt = computeNet(cf.IssuanceOfShortTermDebt, cf.RepaymentsOfShortTermDebt);
+          cf.NetIssuanceOfLongTermDebt = computeNet(cf.IssuanceOfLongTermDebt, cf.RepaymentsOfLongTermDebt);
+          cf.NetIssuanceOfCommonShares = computeNet(cf.IssuanceOfCommonShares, cf.RepurchasesOfCommonShares);
+
+          if (cf.CashFromOperatingActivities && cf.CapitalExpenditure) {
+            cf.FreeCashFlow = {};
+            for (let y of Object.keys(cf.CashFromOperatingActivities)) {
+              cf.FreeCashFlow[y] = (cf.CashFromOperatingActivities[y] || 0) - Math.abs(cf.CapitalExpenditure[y] || 0);
+            }
+          }
+
+          if (inc.OperatingProfit && inc.EffectiveTaxRate) {
+            cf.NOPAT = {};
+            for (let y of Object.keys(inc.OperatingProfit)) {
+              if (inc.EffectiveTaxRate[y] !== undefined) {
+                cf.NOPAT[y] = inc.OperatingProfit[y] * (1 - (inc.EffectiveTaxRate[y] / 100));
+              }
+            }
+          }
+
+          if (cf.FreeCashFlow) {
+            cf.LeveredFreeCashFlow = { ...cf.FreeCashFlow };
+          }
+
+          if (cf.NOPAT && cf.CashFromOperatingActivities && inc.ConsolidatedNetIncome) {
+            cf.UnleveredFreeCashFlow = {};
+            for (let y of Object.keys(cf.NOPAT)) {
+              const capEx = cf.CapitalExpenditure?.[y] || 0;
+              cf.UnleveredFreeCashFlow[y] = cf.NOPAT[y] + (cf.CashFromOperatingActivities[y] || 0) - (inc.ConsolidatedNetIncome[y] || 0) - Math.abs(capEx);
+            }
+          }
+
+          const cfOrder = [
+            'NetIncome', 'DepreciationAmortization', 'ShareBasedCompensation', 'OtherAdjustments',
+            'ChangesInTradeReceivables', 'ChangesInInventories', 'ChangesInAccountsPayable', 'ChangesInUnearnedRevenue',
+            'ChangesInOtherOperatingActivities', 'CashFromOperatingActivities',
+            
+            'CapitalExpenditure', 'PurchasesOfIntangibleAssets', 'PurchasesOfInvestments', 'ProceedsFromSaleOfInvestments',
+            'PaymentsForBusinessAcquisitions', 'OtherInvestingActivities', 'CashFromInvestingActivities',
+            
+            'IssuanceOfShortTermDebt', 'RepaymentsOfShortTermDebt', 'NetIssuanceOfShortTermDebt',
+            'IssuanceOfLongTermDebt', 'RepaymentsOfLongTermDebt', 'NetIssuanceOfLongTermDebt',
+            'IssuanceOfCommonShares', 'RepurchasesOfCommonShares', 'NetIssuanceOfCommonShares',
+            'CommonShareDividendsPaid', 'OtherFinancingActivities', 'CashFromFinancingActivities',
+            
+            'FreeCashFlow', 'NOPAT', 'LeveredFreeCashFlow', 'UnleveredFreeCashFlow', 'NetChangeInCash'
+          ];
+          
+          const orderedCf = {};
+          cfOrder.forEach(k => {
+            if (cf[k]) orderedCf[k] = cf[k];
+          });
+          state.financials.statements.cash_flow = orderedCf;
         }
 
         // Auto-select first key metric

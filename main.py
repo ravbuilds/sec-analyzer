@@ -138,48 +138,88 @@ CONCEPT_MAP = {
         "TotalLiabilitiesAndEquity": ["LiabilitiesAndStockholdersEquity"],
     },
     "cash_flow": {
-        "OperatingCashFlow": [
-            "NetCashProvidedByUsedInOperatingActivities",
-            "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
+        # Operating Activities
+        "NetIncome": [
+            "NetIncomeLoss", "ProfitLoss"
         ],
-        "InvestingCashFlow": [
-            "NetCashProvidedByUsedInInvestingActivities",
-            "NetCashProvidedByUsedInInvestingActivitiesContinuingOperations",
+        "DepreciationAmortization": [
+            "DepreciationDepletionAndAmortization", "DepreciationAndAmortization"
         ],
-        "FinancingCashFlow": [
-            "NetCashProvidedByUsedInFinancingActivities",
-            "NetCashProvidedByUsedInFinancingActivitiesContinuingOperations",
+        "ShareBasedCompensation": [
+            "ShareBasedCompensation", "ShareBasedCompensationExpense"
         ],
-        "CapEx": [
-            "PaymentsToAcquirePropertyPlantAndEquipment",
-            "PaymentsForCapitalImprovements",
+        "OtherAdjustments": [
+            "OtherNoncashIncomeExpense"
         ],
-        "FreeCashFlow_Proxy": [
-            "NetCashProvidedByUsedInOperatingActivities",
+        "ChangesInTradeReceivables": [
+            "IncreaseDecreaseInAccountsReceivable", "IncreaseDecreaseInReceivables"
         ],
-        "DividendsPaid": [
-            "PaymentsOfDividends", "PaymentsOfDividendsCommonStock",
+        "ChangesInInventories": [
+            "IncreaseDecreaseInInventories"
         ],
-        "ShareRepurchases": [
-            "PaymentsForRepurchaseOfCommonStock",
+        "ChangesInAccountsPayable": [
+            "IncreaseDecreaseInAccountsPayable"
         ],
-        "DebtIssuance": [
-            "ProceedsFromIssuanceOfLongTermDebt",
+        "ChangesInUnearnedRevenue": [
+            "IncreaseDecreaseInDeferredRevenue"
         ],
-        "DebtRepayment": [
-            "RepaymentsOfLongTermDebt",
+        "ChangesInOtherOperatingActivities": [
+            "IncreaseDecreaseInOtherOperatingAssetsAndLiabilitiesNet", "IncreaseDecreaseInOtherOperatingLiabilities"
         ],
-        "DepreciationInCF": [
-            "DepreciationDepletionAndAmortization",
+        "CashFromOperatingActivities": [
+            "NetCashProvidedByUsedInOperatingActivities"
         ],
-        "StockBasedComp": [
-            "ShareBasedCompensation",
+
+        # Investing Activities
+        "CapitalExpenditure": [
+            "PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsForCapitalImprovements"
         ],
-        "Acquisitions": [
-            "PaymentsToAcquireBusinessesNetOfCashAcquired",
+        "PurchasesOfIntangibleAssets": [
+            "PaymentsToAcquireIntangibleAssets"
         ],
-        "CashBeginningOfPeriod": [
-            "CashAndCashEquivalentsAtCarryingValue",
+        "PurchasesOfInvestments": [
+            "PaymentsToAcquireInvestments"
+        ],
+        "ProceedsFromSaleOfInvestments": [
+            "ProceedsFromSaleOfInvestments", "ProceedsFromMaturitiesSalesAndCallsofAvailableForSaleSecurities"
+        ],
+        "PaymentsForBusinessAcquisitions": [
+            "PaymentsToAcquireBusinessesNetOfCashAcquired"
+        ],
+        "OtherInvestingActivities": [
+            "PaymentsForOtherInvestingActivities"
+        ],
+        "CashFromInvestingActivities": [
+            "NetCashProvidedByUsedInInvestingActivities"
+        ],
+
+        # Financing Activities
+        "IssuanceOfShortTermDebt": [
+            "ProceedsFromIssuanceOfShortTermDebt"
+        ],
+        "RepaymentsOfShortTermDebt": [
+            "RepaymentsOfShortTermDebt"
+        ],
+        "IssuanceOfLongTermDebt": [
+            "ProceedsFromIssuanceOfLongTermDebt"
+        ],
+        "RepaymentsOfLongTermDebt": [
+            "RepaymentsOfLongTermDebt"
+        ],
+        "IssuanceOfCommonShares": [
+            "ProceedsFromIssuanceOfCommonStock"
+        ],
+        "RepurchasesOfCommonShares": [
+            "PaymentsForRepurchaseOfCommonStock"
+        ],
+        "CommonShareDividendsPaid": [
+            "PaymentsOfDividendsCommonStock", "PaymentsOfDividends"
+        ],
+        "OtherFinancingActivities": [
+            "PaymentsForOtherFinancingActivities"
+        ],
+        "CashFromFinancingActivities": [
+            "NetCashProvidedByUsedInFinancingActivities"
         ],
         "NetChangeInCash": [
             "CashAndCashEquivalentsPeriodIncreaseDecrease",
@@ -372,14 +412,7 @@ async def get_financials(ticker: str):
             if annual:
                 result[statement][metric] = annual
     
-    # Compute free cash flow
-    ocf = result["cash_flow"].get("OperatingCashFlow", {})
-    capex = result["cash_flow"].get("CapEx", {})
-    if ocf:
-        result["cash_flow"]["FreeCashFlow"] = {
-            yr: ocf[yr] - abs(capex.get(yr, 0))
-            for yr in ocf
-        }
+    # No longer needed, computed in frontend
     
     # Build year list
     all_years = set()
